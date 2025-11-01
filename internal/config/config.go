@@ -8,9 +8,10 @@ import (
 )
 
 type DriftCfg struct {
-	AtlantisUrl   string
-	AtlantisToken string
-	ConfigPath    string
+	AtlantisUrl        string
+	AtlantisToken      string
+	AtlantisRepoPath   string
+	AtlantisConfigPath string
 }
 type Repo struct {
 	Ref  string
@@ -27,26 +28,28 @@ type VcsServers struct {
 	GitlabServer *ServerCfg `yaml:"gitlab"`
 }
 
-func GetDriftCfg() (DriftCfg, error) {
+func GetDriftCfg(atlantisUrl, atlantisToken, atlantisRepoPath, atlantisConfigPath string) (DriftCfg, error) {
 	var d DriftCfg
 
-	var url, token, configPath string
-	var ok bool
-
-	if url, ok = os.LookupEnv("ATLANTIS_URL"); !ok {
+	if atlantisUrl == "" {
 		return d, fmt.Errorf("ATLANTIS_URL environment variable is required but not set")
 	}
-	d.AtlantisUrl = url
+	d.AtlantisUrl = atlantisUrl
 
-	if token, ok = os.LookupEnv("ATLANTIS_TOKEN"); !ok {
+	if atlantisToken == "" {
 		return d, fmt.Errorf("ATLANTIS_TOKEN environment variable is required but not set")
 	}
-	d.AtlantisToken = token
+	d.AtlantisToken = atlantisToken
 
-	if configPath, ok = os.LookupEnv("CONFIG_PATH"); !ok {
-		return d, fmt.Errorf("CONFIG_PATH environment variable is required but not set")
+	if atlantisRepoPath == "" {
+		return d, fmt.Errorf("ATLANTIS_REPO_PATH environment variable is required but not set")
 	}
-	d.ConfigPath = configPath
+	d.AtlantisRepoPath = atlantisRepoPath
+
+	if atlantisConfigPath == "" {
+		return d, fmt.Errorf("ATLANTIS_CONFIG_PATH environment variable is required but not set")
+	}
+	d.AtlantisConfigPath = atlantisConfigPath
 
 	return d, nil
 }

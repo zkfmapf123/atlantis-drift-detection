@@ -11,28 +11,38 @@ import (
 )
 
 func main() {
-	var gitlabToken, githubToken string
+	var githubToken, atlantisUrl, atlantisToken, atlantisRepo, atlantisConfigPath string
 
 	// Define flags
-	flag.StringVar(&gitlabToken, "gitlab-token", os.Getenv("GITLAB_TOKEN"), "API token for Gitlab")
-	flag.StringVar(&githubToken, "github-token", os.Getenv("GITHUB_TOKEN"), "API token for Github")
+	flag.StringVar(&githubToken, "GITHUB_TOKEN", os.Getenv("GITHUB_TOKEN"), "API token for Github")
+	flag.StringVar(&atlantisUrl, "ATLANTIS_URL", os.Getenv("ATLANTIS_URL"), "Atlantis URL")
+	flag.StringVar(&atlantisToken, "ATLANTIS_TOKEN", os.Getenv("ATLANTIS_TOKEN"), "Atlantis Token")
+	flag.StringVar(&atlantisRepo, "ATLNATIS_REPO", os.Getenv("ATLNATIS_REPO"), "Atlantis Repo") // [user]/[repo]
+	flag.StringVar(&atlantisConfigPath, "ATLANTIS_CONFIG_PATH", os.Getenv("ATLANTIS_CONFIG_PATH"), "Atlantis Config Path")
 	flag.Parse()
 
-	validateTokens(gitlabToken, githubToken)
+	validateTokens(githubToken)
 
-	driftCfg, err := config.GetDriftCfg()
+	driftCfg, err := config.GetDriftCfg(
+		atlantisUrl,
+		atlantisToken,
+		atlantisRepo,
+		atlantisConfigPath,
+	)
+
 	if err != nil {
 		log.Fatalln(err)
 	}
-	servers, err := config.LoadVcsConfig(driftCfg.ConfigPath)
+	servers, err := config.LoadVcsConfig(driftCfg.AtlantisConfigPath)
+
 	if err != nil {
 		log.Fatalln(err)
 	}
-	executeDriftCheck(servers, githubToken, gitlabToken, driftCfg)
+	executeDriftCheck(servers, githubToken, "gitlabToken", driftCfg)
 }
 
-func validateTokens(gitlabToken, githubToken string) {
-	if gitlabToken == "" && githubToken == "" {
+func validateTokens(githubToken string) {
+	if githubToken == "" {
 		log.Fatalln("Error: Both GitLab and GitHub tokens are not provided but at least one is required. Set GITLAB_TOKEN or GITHUB_TOKEN environment variables, or pass them using the --gitlab-token and/or --github-token flags.")
 	}
 }

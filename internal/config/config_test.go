@@ -9,15 +9,17 @@ import (
 )
 
 func TestGetDriftCfg(t *testing.T) {
-	os.Setenv("ATLANTIS_URL", "http://example.com")
+	os.Setenv("ATLANTIS_URL", "https://api.github.com")
 	os.Setenv("ATLANTIS_TOKEN", "token")
-	os.Setenv("CONFIG_PATH", "/path/to/config.yaml")
+	os.Setenv("ATLANTIS_REPO_PATH", "zkfmapf123/atlantis-fargate")
+	os.Setenv("ATLANTIS_CONFIG_PATH", "/path/to/atlantis.yaml")
 	defer os.Clearenv()
 
 	expectedCfg := config.DriftCfg{
-		AtlantisUrl:   "http://example.com",
-		AtlantisToken: "token",
-		ConfigPath:    "/path/to/config.yaml",
+		AtlantisUrl:        "https://api.github.com",
+		AtlantisToken:      "token",
+		AtlantisRepoPath:   "zkfmapf123/atlantis-fargate",
+		AtlantisConfigPath: "/path/to/atlantis.yaml",
 	}
 
 	cfg, err := config.GetDriftCfg()

@@ -1,5 +1,14 @@
 # Atlantis Drift Detection
 
+## Configuration
+
+- ATLANTIS_URL  - The URL of your Atlantis instance.
+- ATLANTIS_TOKEN - The API token used to authenticate with your Atlantis instance.
+- ATLNATIS_REPO_PATH - The path to your Atlantis repository.
+- ATLANTIS_CONIFG_PATH - The path to your VCS configuration file (in YAML format).
+
+<!-- # Atlantis Drift Detection
+
 Atlantis Drift Detection is a utility designed to detect drift in infrastructure managed by [Atlantis](https://www.runatlantis.io/). It works by comparing the infrastructure state in your version control system (GitHub, GitLab) with the actual state in your cloud provider.
 
 ## Configuration
@@ -57,4 +66,4 @@ export CONFIG_PATH=/path/to/your/config.yaml
 4. Run the program:
 ```
 ./atlantis-drift-detection --github-token $SOME_TOKEN --gitlab-token $SOME_TOKEN
-```
+``` -->
