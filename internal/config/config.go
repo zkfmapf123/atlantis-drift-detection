@@ -1,18 +1,33 @@
 package config
 
 import (
+	"errors"
 	"fmt"
 	"os"
+	"path/filepath"
 
 	"gopkg.in/yaml.v3"
 )
 
 type DriftCfg struct {
+	GithubRepoRef string
+
 	AtlantisUrl        string
 	AtlantisToken      string
-	AtlantisRepoPath   string
+	AtlantisRepo       string
 	AtlantisConfigPath string
+
+	AtlantisRepoSetting []string
 }
+
+type AtlanstisSetting struct {
+	Projects []struct {
+		Name     string `json:"name"`
+		Dir      string `json:"dir"`
+		Workflow string `json:"terraform"`
+	} `json:"projects"`
+}
+
 type Repo struct {
 	Ref  string
 	Name string
@@ -23,13 +38,13 @@ type ServerCfg struct {
 	Repos       []Repo `yaml:"repos"`
 }
 
-type VcsServers struct {
-	GithubServer *ServerCfg `yaml:"github"`
-	GitlabServer *ServerCfg `yaml:"gitlab"`
-}
-
-func GetDriftCfg(atlantisUrl, atlantisToken, atlantisRepoPath, atlantisConfigPath string) (DriftCfg, error) {
+func GetDriftCfg(githubRepoToken, atlantisUrl, atlantisToken, atlantisRepoPath, atlantisConfigPath string) (DriftCfg, error) {
 	var d DriftCfg
+
+	if githubRepoToken == "" {
+		return d, fmt.Errorf("GITHUB_REPO_REF environment variable is required but not set")
+	}
+	d.GithubRepoRef = githubRepoToken
 
 	if atlantisUrl == "" {
 		return d, fmt.Errorf("ATLANTIS_URL environment variable is required but not set")
@@ -44,7 +59,7 @@ func GetDriftCfg(atlantisUrl, atlantisToken, atlantisRepoPath, atlantisConfigPat
 	if atlantisRepoPath == "" {
 		return d, fmt.Errorf("ATLANTIS_REPO_PATH environment variable is required but not set")
 	}
-	d.AtlantisRepoPath = atlantisRepoPath
+	d.AtlantisRepo = atlantisRepoPath
 
 	if atlantisConfigPath == "" {
 		return d, fmt.Errorf("ATLANTIS_CONFIG_PATH environment variable is required but not set")
@@ -54,24 +69,33 @@ func GetDriftCfg(atlantisUrl, atlantisToken, atlantisRepoPath, atlantisConfigPat
 	return d, nil
 }
 
-func LoadVcsConfig(repoCfgPath string) (*VcsServers, error) {
-	var cfg VcsServers
+func LoadAtlantisConfig(repoCfgPath string) (*AtlanstisSetting, error) {
+
+	var ats AtlanstisSetting
+
 	if fileExists(repoCfgPath) {
 		f, err := os.ReadFile(repoCfgPath)
 		if err != nil {
-			return &cfg, err
+			return &ats, err
 		}
-		err = yaml.Unmarshal(f, &cfg)
+		err = yaml.Unmarshal(f, &ats)
+
 		if err != nil {
-			return &cfg, err
+			return &ats, err
 		}
-		return &cfg, nil
+
+		return &ats, nil
 	}
-	return &cfg, fmt.Errorf("could not find config file")
+
+	return &ats, errors.New("could not find config file")
+
 }
 
 func fileExists(filename string) bool {
-	info, err := os.Stat(filename)
+	home, _ := os.Getwd()
+	file := filepath.Join(home, filename)
+
+	info, err := os.Stat(file)
 	if os.IsNotExist(err) {
 		return false
 	}

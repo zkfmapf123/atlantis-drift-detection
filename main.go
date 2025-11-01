@@ -4,17 +4,24 @@ import (
 	"flag"
 	"log"
 	"os"
+	"strings"
 
 	"github.com/jukie/atlantis-drift-detection/internal/config"
 	"github.com/jukie/atlantis-drift-detection/internal/drift"
 	"github.com/jukie/atlantis-drift-detection/internal/vcs"
 )
 
+var (
+	GH_URL = "https://api.github.com"
+)
+
 func main() {
-	var githubToken, atlantisUrl, atlantisToken, atlantisRepo, atlantisConfigPath string
+	var githubToken, githubRepoToken, atlantisUrl, atlantisToken, atlantisRepo, atlantisConfigPath string
 
 	// Define flags
 	flag.StringVar(&githubToken, "GITHUB_TOKEN", os.Getenv("GITHUB_TOKEN"), "API token for Github")
+	flag.StringVar(&githubRepoToken, "GITHUB_REPO_REF", os.Getenv("GITHUB_REPO_REF"), "Github Repo Ref") // main or master
+
 	flag.StringVar(&atlantisUrl, "ATLANTIS_URL", os.Getenv("ATLANTIS_URL"), "Atlantis URL")
 	flag.StringVar(&atlantisToken, "ATLANTIS_TOKEN", os.Getenv("ATLANTIS_TOKEN"), "Atlantis Token")
 	flag.StringVar(&atlantisRepo, "ATLNATIS_REPO", os.Getenv("ATLNATIS_REPO"), "Atlantis Repo") // [user]/[repo]
@@ -24,6 +31,7 @@ func main() {
 	validateTokens(githubToken)
 
 	driftCfg, err := config.GetDriftCfg(
+		githubRepoToken,
 		atlantisUrl,
 		atlantisToken,
 		atlantisRepo,
@@ -33,12 +41,12 @@ func main() {
 	if err != nil {
 		log.Fatalln(err)
 	}
-	servers, err := config.LoadVcsConfig(driftCfg.AtlantisConfigPath)
+	servers, err := config.LoadAtlantisConfig(driftCfg.AtlantisConfigPath)
 
 	if err != nil {
 		log.Fatalln(err)
 	}
-	executeDriftCheck(servers, githubToken, "gitlabToken", driftCfg)
+	executeDriftCheck(servers, githubToken, driftCfg)
 }
 
 func validateTokens(githubToken string) {
@@ -47,21 +55,22 @@ func validateTokens(githubToken string) {
 	}
 }
 
-func executeDriftCheck(servers *config.VcsServers, githubToken, gitlabToken string, driftCfg config.DriftCfg) {
-	if servers.GithubServer != nil {
-		ghClient, err := vcs.NewGithubClient(servers.GithubServer.ApiEndpoint, githubToken)
-		if err != nil {
-			log.Fatalln("failed to setup github client")
-		}
-		driftRunner(ghClient, servers.GithubServer.Repos, driftCfg)
+/*
+github : https://api.github.com
+*/
+func executeDriftCheck(servers *config.AtlanstisSetting, githubToken string, driftCfg config.DriftCfg) {
+
+	ghClient, err := vcs.NewGithubClient(GH_URL, githubToken)
+	if err != nil {
+		log.Fatalln("failed to setup github client")
 	}
-	if servers.GitlabServer != nil {
-		glClient, err := vcs.NewGitlabClient(servers.GitlabServer.ApiEndpoint, gitlabToken)
-		if err != nil {
-			log.Fatalln("failed to setup gitlab client")
-		}
-		driftRunner(glClient, servers.GitlabServer.Repos, driftCfg)
-	}
+
+	driftRunner(ghClient, []config.Repo{
+		{
+			Ref:  driftCfg.GithubRepoRef,
+			Name: strings.Split(driftCfg.AtlantisRepo, "/")[1],
+		},
+	}, driftCfg)
 }
 
 func driftRunner(client vcs.Client, repos []config.Repo, driftCfg config.DriftCfg) {

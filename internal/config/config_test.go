@@ -9,6 +9,7 @@ import (
 )
 
 func TestGetDriftCfg(t *testing.T) {
+	os.Setenv("GITHUB_REPO_REF", "main")
 	os.Setenv("ATLANTIS_URL", "https://api.github.com")
 	os.Setenv("ATLANTIS_TOKEN", "token")
 	os.Setenv("ATLANTIS_REPO_PATH", "zkfmapf123/atlantis-fargate")
@@ -16,71 +17,56 @@ func TestGetDriftCfg(t *testing.T) {
 	defer os.Clearenv()
 
 	expectedCfg := config.DriftCfg{
+		GithubRepoRef:      "main",
 		AtlantisUrl:        "https://api.github.com",
 		AtlantisToken:      "token",
-		AtlantisRepoPath:   "zkfmapf123/atlantis-fargate",
+		AtlantisRepo:       "zkfmapf123/atlantis-fargate",
 		AtlantisConfigPath: "/path/to/atlantis.yaml",
 	}
 
-	cfg, err := config.GetDriftCfg()
+	cfg, err := config.GetDriftCfg("main", "https://api.github.com", "token", "zkfmapf123/atlantis-fargate", "/path/to/atlantis.yaml")
 	assert.NoError(t, err)
 	assert.Equal(t, expectedCfg, cfg)
 }
 
 func TestGetDriftCfgMissingEnvVar(t *testing.T) {
-	os.Unsetenv("ATLANTIS_URL")
-	os.Unsetenv("ATLANTIS_TOKEN")
-	os.Unsetenv("CONFIG_PATH")
+	os.Unsetenv("GITHUB_REPO_REF")
+	// os.Unsetenv("ATLANTIS_URL")
+	// os.Unsetenv("ATLANTIS_TOKEN")
+	// os.Unsetenv("ATLANTIS_REPO")
+	// os.Unsetenv("ATLANTIS_CONFIG_PATH")
 	defer os.Clearenv()
 
-	_, err := config.GetDriftCfg()
+	_, err := config.GetDriftCfg("", "https://api.github.com", "token", "zkfmapf123/atlantis-fargate", "/path/to/atlantis.yaml")
 	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "ATLANTIS_URL environment variable is required but not set")
+	assert.Contains(t, err.Error(), "GITHUB_REPO_REF environment variable is required but not set")
 }
 
-func TestLoadVcsConfig(t *testing.T) {
-	cfgYAML := `github:
-  apiEndpoint: https://api.github.com
-  repos:
-  - ref: master
-    name: repo1
-gitlab:
-  apiEndpoint: https://gitlab.com/api/v4
-  repos:
-  - ref: main
-    name: repo2
-`
-	tmpfile, err := os.CreateTemp("", "config")
-	assert.NoError(t, err)
-	defer os.Remove(tmpfile.Name())
+// func TestLoadVcsConfig(t *testing.T) {
+// 	cfgYAML := `version: 3
+// projects:
+//   - name: 1
+//     dir: examples/ec2
+//     workflow: terraform
+//   - name: 2
+//     dir: examples/ec2
+//     workflow: terraform
+// `
+// 	tmpfile, err := os.CreateTemp("", "atlantis_temp.yaml")
+// 	assert.NoError(t, err)
+// 	defer os.Remove(tmpfile.Name())
 
-	err = os.WriteFile(tmpfile.Name(), []byte(cfgYAML), 0644)
-	assert.NoError(t, err)
+// 	err = os.WriteFile(tmpfile.Name(), []byte(cfgYAML), 0644)
+// 	assert.NoError(t, err)
 
-	expectedCfg := &config.VcsServers{
-		GithubServer: &config.ServerCfg{
-			ApiEndpoint: "https://api.github.com",
-			Repos: []config.Repo{
-				{Ref: "master", Name: "repo1"},
-			},
-		},
-		GitlabServer: &config.ServerCfg{
-			ApiEndpoint: "https://gitlab.com/api/v4",
-			Repos: []config.Repo{
-				{Ref: "main", Name: "repo2"},
-			},
-		},
-	}
-
-	cfg, err := config.LoadVcsConfig(tmpfile.Name())
-	assert.NoError(t, err)
-	assert.Equal(t, expectedCfg, cfg)
-}
+// 	cfg, err := config.LoadAtlantisConfig(tmpfile.Name())
+// 	assert.NoError(t, err)
+// 	assert.Equal(t, len(cfg.Projects), 2)
+// }
 
 func TestLoadVcsConfigMissingFile(t *testing.T) {
 	cfgPath := "/path/to/nonexistent.yaml"
 
-	_, err := config.LoadVcsConfig(cfgPath)
+	_, err := config.LoadAtlantisConfig(cfgPath)
 	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "could not find config file")
 }

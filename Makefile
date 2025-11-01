@@ -11,6 +11,7 @@ build: clear
 run: build
 	atlantis-drift-detection \
 		--GITHUB_TOKEN test \
+	    --GITHUB_REPO_REF main \
 		--ATLANTIS_URL https://atlantis.dev.leedonggyu.com \
 		--ATLANTIS_TOKEN test \
 		--ATLNATIS_REPO zkfmapf123/atlantis-fargate \
